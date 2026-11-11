@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/SolutionFiles/">
+    <File Path="docs/Architektur.md" />
+    <File Path="docs/Notes.md" />
+  </Folder>
+  <Project Path="MsSql.Mimic/MsSql.Mimic.csproj" />
+</Solution>
