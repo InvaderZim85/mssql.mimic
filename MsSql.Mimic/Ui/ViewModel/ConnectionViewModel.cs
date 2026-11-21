@@ -1,5 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
+using Microsoft.VisualBasic.ApplicationServices;
+
 using MsSql.Mimic.Domain.Dtos;
 using MsSql.Mimic.Domain.Models;
 
@@ -42,7 +44,7 @@ public sealed partial class ConnectionViewModel : ObservableObject
     public partial bool UseIntegratedSecurity { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the user name used for SQL Server authentication.
+    /// Gets or sets the username used for SQL Server authentication.
     /// </summary>
     /// <remarks>
     /// This value is used when integrated security is disabled and explicit credentials are provided.
@@ -117,11 +119,24 @@ public sealed partial class ConnectionViewModel : ObservableObject
             Server = Server,
             Database = Database,
             UseIntegratedSecurity = UseIntegratedSecurity,
-            UserName = UserName,
-            Password = Password,
+            UserName = string.IsNullOrWhiteSpace(UserName) ? null : UserName,
+            Password = string.IsNullOrWhiteSpace(Password) ? null : Password,
             TrustServerCertificate = TrustServerCertificates,
             Encrypt = Encrypt,
             Intent = (ConnectionIntent)ApplicationIntent.Id
+        };
+    }
+
+    /// <summary>
+    /// Creates a new connection profile initialized with placeholder server and database values.
+    /// </summary>
+    /// <return>A connection profile with default connection settings and placeholder values for required fields.</return>
+    public static ConnectionViewModel NewConnection()
+    {
+        return new ConnectionViewModel
+        {
+            Server = "<Enter server>",
+            Database = "<Enter database>"
         };
     }
 }

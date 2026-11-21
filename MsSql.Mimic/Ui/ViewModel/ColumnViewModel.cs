@@ -4,32 +4,66 @@ using MsSql.Mimic.Domain.Models;
 
 namespace MsSql.Mimic.Ui.ViewModel;
 
+/// <summary>
+/// Represents an observable view model for a database column used when configuring generated property metadata.
+/// </summary>
+/// <remarks>
+/// Provides editable column metadata for the UI and supports conversion to and from a domain property definition.
+/// </remarks>
 public sealed partial class ColumnViewModel : ObservableObject
 {
+    /// <summary>
+    /// Gets or sets a value indicating whether the column is included.
+    /// </summary>
     [ObservableProperty]
     public partial bool IsIncluded { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the name of the database column.
+    /// </summary>
     [ObservableProperty]
     public partial string ColumnName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the name of the generated property for the column.
+    /// </summary>
     [ObservableProperty]
     public partial string PropertyName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the C# type name used for the generated property.
+    /// </summary>
     [ObservableProperty]
     public partial string CSharpTypeName { get; set; } = string.Empty;
-    
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column allows null values.
+    /// </summary>
     [ObservableProperty]
     public partial bool IsNullable { get; set; }
-    
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column is part of the primary key.
+    /// </summary>
     [ObservableProperty]
     public partial bool IsPrimaryKey { get; set; }
-    
+
+    /// <summary>
+    /// Gets or sets the maximum length defined for the column, if specified.
+    /// </summary>
     [ObservableProperty]
     public partial int? MaxLength { get; set; }
-    
+
+    /// <summary>
+    /// Gets or sets the accessor pattern to use when generating the C# property.
+    /// </summary>
     [ObservableProperty]
     public partial AccessorKind AccessorKind { get; set; }
 
+    /// <summary>
+    /// Converts this column view model into a property definition.
+    /// </summary>
+    /// <returns>A property definition populated with the column metadata from this view model.</returns>
     public PropertyDefinition ToPropertyDefinition()
     {
         return new PropertyDefinition
@@ -39,11 +73,15 @@ public sealed partial class ColumnViewModel : ObservableObject
             CSharpTypeName = CSharpTypeName,
             IsNullable = IsNullable,
             IsPrimaryKey = IsPrimaryKey,
-            MaxLength = MaxLength,
-            AccessorKind = AccessorKind
+            MaxLength = MaxLength
         };
     }
 
+    /// <summary>
+    /// Creates a column view model from the specified property definition.
+    /// </summary>
+    /// <param name="property">The property definition containing the column metadata to copy.</param>
+    /// <returns>A column view model populated with values from the specified property definition.</returns>
     public static ColumnViewModel FromPropertyDefinition(PropertyDefinition property)
     {
         return new ColumnViewModel
@@ -53,8 +91,7 @@ public sealed partial class ColumnViewModel : ObservableObject
             CSharpTypeName = property.CSharpTypeName,
             IsNullable = property.IsNullable,
             IsPrimaryKey = property.IsPrimaryKey,
-            MaxLength = property.MaxLength,
-            AccessorKind = property.AccessorKind
+            MaxLength = property.MaxLength
         };
     }
 }

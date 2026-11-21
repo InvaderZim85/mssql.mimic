@@ -9,8 +9,16 @@ using System.IO;
 using System.Windows.Media;
 using System.Xml;
 
-namespace MsSql.Mimic.Ui;
+namespace MsSql.Mimic.Ui.View;
 
+/// <summary>
+/// Represents the main application window for the SQL mimic user interface.
+/// </summary>
+/// <remarks>
+/// Initializes the window components, assigns the main view model as the data context,
+/// performs window-specific editor setup after loading, and starts asynchronous view-model
+/// initialization after the window content has been rendered.
+/// </remarks>
 public partial class MainWindow : MetroWindow
 {
     /// <summary>
@@ -23,7 +31,7 @@ public partial class MainWindow : MetroWindow
         DataContext = viewModel;
 
         Loaded += (_, _) => InitTextEditor();
-        ContentRendered += (_, _) => viewModel.InitViewModel();
+        ContentRendered += async (_, _) => await viewModel.InitViewModelAsync();
     }
 
     /// <summary>

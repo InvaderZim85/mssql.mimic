@@ -65,8 +65,7 @@ public class AliasService(AliasDbContext context)
                 columnEntity = new ColumnAliasEntity
                 {
                     ColumnName = property.ColumnName,
-                    PropertyName = property.PropertyName,
-                    AccessorKind = property.AccessorKind.ToString()
+                    PropertyName = property.PropertyName
                 };
 
                 entity.Columns.Add(columnEntity);
@@ -74,7 +73,6 @@ public class AliasService(AliasDbContext context)
             else
             {
                 columnEntity.PropertyName = property.PropertyName;
-                columnEntity.AccessorKind = property.AccessorKind.ToString();
             }
         }
 

@@ -4,8 +4,19 @@ using MsSql.Mimic.Infrastructure.Sqlite.Entities;
 
 namespace MsSql.Mimic.Application.Services;
 
+/// <summary>
+/// Creates property definitions from table metadata by converting database column information into C#-oriented property descriptors.
+/// </summary>
+/// <param name="nameService">The service used to generate valid C# property names from database identifiers.</param>
+/// <param name="typeMapper">The service used to map SQL column types to corresponding C# types.</param>
 public sealed class PropertyDefinitionFactory(CSharpNameService nameService, SqlTypeMapper typeMapper)
 {
+    /// <summary>
+    /// Creates property definitions for the columns in the specified table definition, applying any matching column aliases when provided.
+    /// </summary>
+    /// <param name="tableDefinition">The table definition containing the columns to convert into property definitions.</param>
+    /// <param name="aliasEntity">The optional table alias entity used to override generated property names.</param>
+    /// <returns>A read-only list of property definitions created from the table columns.</returns>
     public IReadOnlyList<PropertyDefinition> CreateProperties(
         TableDefinition tableDefinition,
         TableAliasEntity? aliasEntity)
@@ -20,10 +31,6 @@ public sealed class PropertyDefinitionFactory(CSharpNameService nameService, Sql
 
                     var propertyName = columnAlias?.PropertyName ?? nameService.ToPropertyName(column.Name);
 
-                    var accessorKind = Enum.TryParse<AccessorKind>(columnAlias?.AccessorKind, out var parsedAccessorKind)
-                        ? parsedAccessorKind
-                        : AccessorKind.GetSet;
-
                     return new PropertyDefinition
                     {
                         ColumnName = column.Name,
@@ -31,8 +38,7 @@ public sealed class PropertyDefinitionFactory(CSharpNameService nameService, Sql
                         CSharpTypeName = typeMapper.MapToCSharpType(column.SqlDataType, column.IsNullable),
                         IsNullable = column.IsNullable,
                         IsPrimaryKey = column.IsPrimaryKey,
-                        MaxLength = column.MaxLength,
-                        AccessorKind = accessorKind
+                        MaxLength = column.MaxLength
                     };
                 })
         ];

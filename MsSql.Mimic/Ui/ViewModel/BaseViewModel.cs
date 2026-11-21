@@ -17,7 +17,7 @@ public abstract partial class BaseViewModel : ObservableObject
     /// <summary>
     /// The brush used to display default information text.
     /// </summary>
-    private readonly SolidColorBrush _infoTextColorDefault = new(Colors.Black);
+    private readonly SolidColorBrush _infoTextColorDefault = new(Color.FromRgb(208, 208, 208));
 
     /// <summary>
     /// The brush used to display success information text.
@@ -94,7 +94,7 @@ public abstract partial class BaseViewModel : ObservableObject
     /// Gets the brush used to display informational text.
     /// </summary>
     [ObservableProperty]
-    public partial SolidColorBrush InfoTextColor { get; private set; } = new(Colors.Black);
+    public partial SolidColorBrush InfoTextColor { get; private set; } = new(Color.FromRgb(208, 208, 208));
  
     /// <summary>
     /// Creates a new instance of the <see cref="BaseViewModel"/>

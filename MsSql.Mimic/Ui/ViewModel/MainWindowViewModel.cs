@@ -9,10 +9,14 @@ using Microsoft.Win32;
 
 using MsSql.Mimic.Application.Options;
 using MsSql.Mimic.Application.Services;
+using MsSql.Mimic.Common;
 using MsSql.Mimic.Domain.Models;
+using MsSql.Mimic.Ui.Enums;
+using MsSql.Mimic.Ui.Services;
 
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Reflection;
 
 namespace MsSql.Mimic.Ui.ViewModel;
 
@@ -26,7 +30,21 @@ namespace MsSql.Mimic.Ui.ViewModel;
 /// by the main window, including selected connection and table information, generation options,
 /// prepared table metadata, and the generated code document.
 /// </remarks>
-public sealed partial class MainWindowViewModel : BaseViewModel
+/// <param name="connectionProfileService">Provides access to saved database connection profiles.</param>
+/// <param name="connectionDialogService">Displays and manages database connection dialogs.</param>
+/// <param name="tablePreparationService">Prepares database table metadata for processing and generation.</param>
+/// <param name="messageService">Provides contextual messages for user-facing operations.</param>
+/// <param name="classGenerator">Generates C# class output from prepared metadata.</param>
+/// <param name="aliasService">Manages aliases used during metadata preparation or code generation.</param>
+/// <param name="generationStatisticsService">The services for collecting and managing statistics related to code generation.</param>
+public sealed partial class MainWindowViewModel(
+    ConnectionProfileService connectionProfileService,
+    IConnectionDialogService connectionDialogService,
+    TablePreparationService tablePreparationService,
+    ContextualMessageService messageService,
+    CSharpClassGenerator classGenerator,
+    AliasService aliasService,
+    GenerationStatisticsService generationStatisticsService) : BaseViewModel
 {
     /// <summary>
     /// Provides cancellation support for asynchronous operations in the main window view model.
@@ -34,29 +52,25 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     private readonly CancellationTokenSource _cts = new();
 
     /// <summary>
-    /// Manages loading and deleting persisted database connection history for the main window view model.
+    /// Tracks consecutive info command clicks used to trigger the informational message.
     /// </summary>
-    private readonly ConnectionHistoryService? _connectionHistoryService;
+    private int _clickCount;
 
     /// <summary>
-    /// Provides access to connection dialog operations for creating and editing connection profiles.
+    /// Stores the timestamp of the first click in the current click sequence used to detect repeated clicks within a time window.
     /// </summary>
-    private readonly IConnectionDialogService? _connectionDialogService;
+    private DateTime _firstClick;
+    
+    /// <summary>
+    /// Stores the prepared table definition currently loaded for code generation.
+    /// </summary>
+    private PreparedTableDefinition? _preparedTable;
 
     /// <summary>
-    /// Provides table loading and metadata preparation services for the main window view model.
+    /// Gets the title of the main window.
     /// </summary>
-    private readonly TablePreparationService? _tablePreparationService;
-
-    /// <summary>
-    /// Generates C# class source code from the selected table metadata and generation options.
-    /// </summary>
-    private readonly CSharpClassGenerator? _classGenerator;
-
-    /// <summary>
-    /// Provides access to alias persistence operations for saving class and column alias settings.
-    /// </summary>
-    private readonly AliasService? _aliasService;
+    [ObservableProperty]
+    public partial string Title { get; set; } = "MsSql.Mimic";
 
     /// <summary>
     /// Gets the collection of available connection profiles displayed by the main window view model.
@@ -93,6 +107,8 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     [ObservableProperty]
     public partial string TableFilter { get; set; } = string.Empty;
 
+    // ReSharper disable once PropertyCanBeMadeInitOnly.Local
+    // ReSharper disable once UnusedMember.Local
     /// <summary>
     /// Gets the collection of column view models for the currently prepared table.
     /// </summary>
@@ -141,38 +157,31 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     [ObservableProperty]
     public partial TextDocument GeneratedCodeDocument { get; private set; } = new();
 
+    // ReSharper disable once PropertyCanBeMadeInitOnly.Local
+    // ReSharper disable once UnusedMember.Local
     /// <summary>
-    /// Gets the prepared table definition for the currently selected table.
+    /// Gets the statistics view model associated with the main window.
     /// </summary>
     [ObservableProperty]
-    public partial PreparedTableDefinition? PreparedTable { get; private set; }
+    public partial StatisticViewModel Statistics { get; private set; } = new();
 
     /// <summary>
-    /// Provides the main window view model responsible for coordinating database connection selection, table metadata loading, generation settings, and generated C# output.
+    /// Indicates whether the view model is currently connected to a database.
     /// </summary>
-    public MainWindowViewModel() { }
+    [ObservableProperty]
+    public partial bool Connected { get; private set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class with the services required to manage connections, prepare table metadata, generate C# code, and resolve aliases.
+    /// Gets connection status information displayed by the main window view model.
     /// </summary>
-    /// <param name="connectionHistoryService">The service used to load and manage saved database connection profiles.</param>
-    /// <param name="connectionDialogService">The service used to display and handle database connection dialogs.</param>
-    /// <param name="tablePreparationService">The service used to prepare selected table metadata for class generation.</param>
-    /// <param name="classGenerator">The service used to generate C# source code from prepared table definitions.</param>
-    /// <param name="aliasService">The service used to manage table and column aliases.</param>
-    public MainWindowViewModel(
-        ConnectionHistoryService connectionHistoryService,
-        IConnectionDialogService connectionDialogService,
-        TablePreparationService tablePreparationService,
-        CSharpClassGenerator classGenerator,
-        AliasService aliasService)
-    {
-        _connectionHistoryService = connectionHistoryService;
-        _connectionDialogService = connectionDialogService;
-        _tablePreparationService = tablePreparationService;
-        _classGenerator = classGenerator;
-        _aliasService = aliasService;
-    }
+    [ObservableProperty]
+    public partial string ConnectionInfo { get; private set; } = "Not connected";
+
+    /// <summary>
+    /// Gets the application version number displayed by the main window view model.
+    /// </summary>
+    [ObservableProperty]
+    public partial string VersionNumber { get; private set; } = "v1.0.0.0";
 
     /// <summary>
     /// Handles changes to the selected table and starts loading its details when a table is selected.
@@ -200,22 +209,30 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     /// <summary>
     /// Initializes the main window view model by loading available accessor options and previously saved connection profiles while displaying progress and handling load errors.
     /// </summary>
-    public async void InitViewModel()
+    public async Task InitViewModelAsync()
     {
-        if (_connectionHistoryService is null)
-            return;
+        var version = Assembly.GetExecutingAssembly().GetName().Version ?? new Version();
+        VersionNumber = $"v{version}";
+        Title = $"MsSql.Mimic | v{version}";
         
         var controller = await ShowProgressAsync("Please wait", "Please wait while loading the connections...", _cts);
 
         try
         {
+            // Load and set the statistics
+            await generationStatisticsService.LoadAsync();
+            UpdateStatistics();
+            
             // Set the available accessors
             Accessors = AccessorOption.All.ToObservableCollection();
             SelectedAccessor = Accessors.FirstOrDefault();
             
             // Load the connections
-            var connections = await _connectionHistoryService.LoadLastConnectionsAsync(_cts.Token);
-            Connections = connections.ToObservableCollection();
+            await LoadConnectionsAsync(cancellationToken: _cts.Token);
+
+            var startupMessage = messageService.GetStartupMessage();
+            if (startupMessage is not null)
+                ShowInfoText(startupMessage);
         }
         catch (Exception ex)
         {
@@ -228,84 +245,65 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Opens the new connection dialog and, when a connection profile is provided, adds it to the available connections and selects it.
+    /// Loads available connection profiles, updates the connection collection, and selects the specified, current, or first available connection.
     /// </summary>
-    /// <return>
-    /// A task that represents the asynchronous operation.
-    /// </return>
-    [RelayCommand]
-    private async Task NewConnectionAsync()
+    /// <param name="connection">The connection profile to select after loading, or null to preserve the current selection when possible.</param>
+    /// <param name="cancellationToken">The cancellation token used to cancel the asynchronous load operation.</param>
+    /// <returns>A task that represents the asynchronous load operation.</returns>
+    private async Task LoadConnectionsAsync(ConnectionProfile? connection = null, CancellationToken cancellationToken = default)
     {
-        if (_connectionDialogService is null)
+        var selectedConnection = connection ?? SelectedConnection;
+
+        var connections = await connectionProfileService.LoadConnectionsAsync(cancellationToken);
+        Connections = connections.ToObservableCollection();
+
+        if (Connections.Count == 0)
             return;
-
-        var connection = await _connectionDialogService.ShowNewConnectionDialogAsync(_cts.Token);
-
-        if (connection is null)
+        
+        if (selectedConnection is null)
+        {
+            SelectedConnection = Connections[0];
             return;
+        }
 
-        Connections.Add(connection);
-        SelectedConnection = connection;
-
-        ShowInfoText("New connection created.", InfoTextType.Success);
+        SetSelectedConnection(selectedConnection);
     }
 
     /// <summary>
-    /// Opens the edit dialog for the selected connection, updates the connection collection with the edited profile, resets the current surface, and displays a success notification.
+    /// Opens the connection manager, refreshes available connection profiles, applies the selected connection when connection is requested, and starts the connection process.
     /// </summary>
-    /// <return>
-    /// A task that represents the asynchronous edit operation.
-    /// </return>
+    /// <returns>
+    /// A task that represents the asynchronous connection management operation.
+    /// </returns>
     [RelayCommand]
-    private async Task EditConnectionAsync()
+    private async Task ManageConnectionsAsync()
     {
-        if (_connectionDialogService is null || SelectedConnection is null)
+        var result = await connectionDialogService.ShowConnectionManagerAsync(_cts.Token);
+
+        await LoadConnectionsAsync(connection: result.SelectedConnection, cancellationToken: _cts.Token);
+
+        if (!result.ConnectRequested || result.SelectedConnection is null)
             return;
 
-        var oldConnection = SelectedConnection;
-        var updatedConnection = await _connectionDialogService.ShowEditConnectionDialogAsync(oldConnection, _cts.Token);
-
-        if (updatedConnection is null)
-            return;
-
-        var index = Connections.IndexOf(oldConnection);
-        if (index >= 0)
-            Connections[index] = updatedConnection;
-        else
-            Connections.Add(updatedConnection);
-        
-        SelectedConnection = updatedConnection;
-        
-        ResetSurface();
-        
-        ShowInfoText("Connection updated.", InfoTextType.Success);
+        await ConnectAsync();
     }
 
     /// <summary>
-    /// Deletes the selected connection after confirmation, removes it from the saved connection history, and clears the current selection.
+    /// Selects the connection profile from the loaded connections that matches the specified connection details.
     /// </summary>
-    /// <return>A task that represents the asynchronous delete operation.</return>
-    [RelayCommand]
-    private async Task DeleteConnectionAsync()
+    /// <param name="connection">The connection profile whose server, database, username, and authentication mode are used to find the matching loaded connection.</param>
+    private void SetSelectedConnection(ConnectionProfile connection)
     {
-        if (_connectionHistoryService is null || SelectedConnection is null)
+        if (Connections.Count == 0)
             return;
 
-        var result = await ShowQuestionAsync("Delete", $"Do you really want to delete the connection '{SelectedConnection}'?", "Yes", "No");
-        if (result != MessageDialogResult.Affirmative)
-            return;
+        var tmpConnection = Connections.FirstOrDefault(con =>
+            con.Server == connection.Server &&
+            con.Database == connection.Database &&
+            con.UserName == connection.UserName &&
+            con.UseIntegratedSecurity == connection.UseIntegratedSecurity);
 
-        try
-        {
-            await _connectionHistoryService.DeleteConnectionAsync(SelectedConnection, _cts.Token);
-
-            Connections.Remove(SelectedConnection);
-            SelectedConnection = null;
-        }
-        catch (Exception ex)
-        {
-            await ShowErrorAsync(ex, ErrorMessageType.Save);
-        }
+        SelectedConnection = tmpConnection;
     }
 
     /// <summary>
@@ -315,7 +313,7 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     {
         Tables.Clear();
         Columns.Clear();
-        PreparedTable = null;
+        _preparedTable = null;
         GeneratedCodeDocument = new TextDocument();
     }
 
@@ -328,7 +326,7 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     [RelayCommand]
     private async Task ConnectAsync()
     {
-        if (SelectedConnection is null || _tablePreparationService is null)
+        if (SelectedConnection is null)
             return;
 
         var controller = await ShowProgressAsync("Please wait", "Please wait while loading tables...", _cts);
@@ -337,16 +335,29 @@ public sealed partial class MainWindowViewModel : BaseViewModel
         {
             ResetSurface();
             
-            var tables = await _tablePreparationService.LoadTablesAsync(SelectedConnection, _cts.Token);
+            var tables = await tablePreparationService.LoadTablesAsync(SelectedConnection, _cts.Token);
             _tables = [.. tables];
             
             foreach (var table in tables)
                 Tables.Add(table);
             
             ShowInfoText("Connection established.", InfoTextType.Success);
+
+            Connected = true;
+            ConnectionInfo = $"Connected - {SelectedConnection}";
+            
+            // Update the last used date
+            await connectionProfileService.UpdateLastUsedDateAsync(SelectedConnection);
+
+            var message = messageService.GetSchemaLoadedMessage(Tables.Count);
+            if (message is not null)
+                ShowInfoText(message);
         }
         catch (Exception ex)
         {
+            Connected = false;
+            ConnectionInfo = "Not connected";
+            
             await ShowErrorAsync(ex, ErrorMessageType.Load);
         }
         finally
@@ -363,7 +374,7 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     /// </return>
     private async Task LoadSelectedTableAsync()
     {
-        if (SelectedConnection is null || SelectedTable is null || _tablePreparationService is null)
+        if (SelectedConnection is null || SelectedTable is null)
             return;
 
         var controller = await ShowProgressAsync("Please wait", "Please wait while loading table metadata...", _cts);
@@ -372,15 +383,15 @@ public sealed partial class MainWindowViewModel : BaseViewModel
         {
             Columns.Clear();
 
-            PreparedTable = await _tablePreparationService.LoadPreparedTableAsync(
+            _preparedTable = await tablePreparationService.LoadPreparedTableAsync(
                 SelectedConnection,
                 SelectedTable,
                 _cts.Token);
 
-            ClassName = PreparedTable.ClassName;
-            UseEfCoreAttributes = PreparedTable.UseEfCoreAttributes;
+            ClassName = _preparedTable.ClassName;
+            UseEfCoreAttributes = _preparedTable.UseEfCoreAttributes;
 
-            foreach (var property in PreparedTable.Properties)
+            foreach (var property in _preparedTable.Properties)
                 Columns.Add(ColumnViewModel.FromPropertyDefinition(property));
         }
         catch (Exception ex)
@@ -402,7 +413,7 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     [RelayCommand]
     private async Task GenerateCodeAsync()
     {
-        if (SelectedTable is null || _classGenerator is null)
+        if (SelectedConnection is null || SelectedTable is null)
             return;
 
         var selectedProperties = Columns
@@ -410,6 +421,41 @@ public sealed partial class MainWindowViewModel : BaseViewModel
             .Select(column => column.ToPropertyDefinition())
             .ToList();
 
+        if (selectedProperties.Count == 0)
+        {
+            await ShowMessageAsync("Generate", "You must select at least one column.");
+            return;
+        }
+
+        if (UseEfCoreAttributes)
+        {
+            var actualKeyColumns = Columns.Count(column => column.IsPrimaryKey);
+            var selectedKeyColumns = selectedProperties.Count(column => column.IsPrimaryKey);
+        
+            // Compare the amount of key columns to check if there is a mismatch
+            if (actualKeyColumns != selectedKeyColumns)
+            {
+                var result = await ShowQuestionAsync("Incomplete primary key",
+                    $"""
+                     Incomplete primary key detected.
+
+                     Table: '{SelectedTable.Name}'
+
+                     Primary key columns in the table: {actualKeyColumns}
+                     Selected primary key columns: {selectedKeyColumns}
+
+                     The generated class does not include all columns of the primary key.
+                     This may lead to configuration and runtime errors when used with EF Core.
+
+                     Do you sill want to proceed with the generation?
+                     """,
+                    "Yes", "No");
+
+                if (result != MessageDialogResult.Affirmative)
+                    return;
+            }
+        }
+        
         var options = new ClassGenerationOptions
         {
             NamespaceName = NamespaceName,
@@ -418,13 +464,31 @@ public sealed partial class MainWindowViewModel : BaseViewModel
             ClassName = ClassName,
             UseEfCoreAttributes = UseEfCoreAttributes,
             GenerateSummary = GenerateSummary,
+            TableHasPrimaryKey = Columns.Any(column => column.IsPrimaryKey),
             AccessorKind = SelectedAccessor?.Kind ?? AccessorKind.GetSet,
             Properties = selectedProperties
         };
 
-        GeneratedCodeDocument = new TextDocument(_classGenerator.Generate(options));
+        GeneratedCodeDocument = new TextDocument(classGenerator.Generate(options));
 
-        await SaveAliasesAsync();
+        await SaveColumnAliasesAsync(true);
+
+        generationStatisticsService.TrackGeneration(SelectedConnection, SelectedTable);
+        generationStatisticsService.ScheduleSave();
+        UpdateStatistics();
+        
+        var message = messageService.GetGenerationMessage(SelectedTable.Schema, SelectedTable.Name);
+        if (message is not null)
+            ShowInfoText(message);
+    }
+
+    /// <summary>
+    /// Refreshes the displayed generation statistics using the current statistics from the statistics service.
+    /// </summary>
+    private void UpdateStatistics()
+    {
+        Statistics.UpdateStatistics(generationStatisticsService.Statistics);
+        Statistics.InfoMessage = messageService.GetStatisticsInfoMessage(Statistics.TotalGeneratedTableCount, Statistics.TotalGeneratedClassCount);
     }
 
     /// <summary>
@@ -477,7 +541,7 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Saves the current column aliases and related generation settings for the selected connection and table.
+    /// Saves column aliases for the current table selection and displays any applicable feedback.
     /// </summary>
     /// <return>
     /// A task that represents the asynchronous save operation.
@@ -485,7 +549,17 @@ public sealed partial class MainWindowViewModel : BaseViewModel
     [RelayCommand]
     private async Task SaveAliasesAsync()
     {
-        if (SelectedConnection is null || SelectedTable is null || _aliasService is null)
+        await SaveColumnAliasesAsync(false);
+    }
+
+    /// <summary>
+    /// Saves the current column alias and generation metadata for the selected connection and table.
+    /// </summary>
+    /// <param name="silent">Indicates whether success notification text should be suppressed after saving.</param>
+    /// <returns>A task that represents the asynchronous save operation.</returns>
+    private async Task SaveColumnAliasesAsync(bool silent)
+    {
+        if (SelectedConnection is null || SelectedTable is null)
             return;
 
         var properties = Columns
@@ -494,19 +568,115 @@ public sealed partial class MainWindowViewModel : BaseViewModel
 
         try
         {
-            await _aliasService.SaveAsync(
+            await aliasService.SaveAsync(
                 SelectedConnection,
                 SelectedTable,
                 ClassName,
                 UseEfCoreAttributes,
                 properties,
                 _cts.Token);
+
+            if (silent)
+                return;
             
             ShowInfoText("Aliases saved.", InfoTextType.Success);
         }
         catch (Exception ex)
         {
             await ShowErrorAsync(ex, ErrorMessageType.Save);
+        }
+    }
+
+    /// <summary>
+    /// Updates the inclusion state of all available columns according to the specified column selection mode.
+    /// </summary>
+    /// <param name="selectionMode">The selection mode that determines whether all columns are included or excluded.</param>
+    [RelayCommand]
+    private void SelectColumns(ColumnSelectionMode selectionMode)
+    {
+        if (Columns.Count == 0)
+            return;
+
+        foreach (var column in Columns)
+            column.IsIncluded = selectionMode is ColumnSelectionMode.All;
+    }
+
+    /// <summary>
+    /// Resets all pending column changes for the selected table after user confirmation, reloads the prepared table definition, updates the displayed columns, and reports the reset result.
+    /// </summary>
+    /// <return>A task that represents the asynchronous reset operation.</return>
+    [RelayCommand]
+    private async Task ResetColumnChangesAsync()
+    {
+        if (SelectedConnection is null || SelectedTable is null)
+            return;
+
+        var result = await ShowQuestionAsync("Reset", "Do you really want to undo all the changes that have been made?", "Yes", "No");
+
+        if (result != MessageDialogResult.Affirmative)
+            return;
+
+        var controller = await ShowProgressAsync("Please wait", "Please wait while resetting column changes...", _cts);
+
+        try
+        {
+            Columns.Clear();
+
+            _preparedTable = await tablePreparationService.ResetPreparedTableAsync(
+                SelectedConnection,
+                SelectedTable,
+                _cts.Token);
+
+            ClassName = _preparedTable.ClassName;
+            UseEfCoreAttributes = _preparedTable.UseEfCoreAttributes;
+
+            foreach (var property in _preparedTable.Properties)
+                Columns.Add(ColumnViewModel.FromPropertyDefinition(property));
+
+            ShowInfoText("Column changes reset.", InfoTextType.Success);
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(ex, ErrorMessageType.Load);
+        }
+        finally
+        {
+            await controller.CloseAsync();
+        }
+    }
+
+    /// <summary>
+    /// Opens the project repository page on GitHub in the default browser.
+    /// </summary>
+    [RelayCommand]
+    private void OpenOnGithub()
+    {
+        const string gitHubUrl = "https://github.com/InvaderZim85/mssql.mimic";
+
+        Helpers.OpenUrl(gitHubUrl);
+    }
+
+    /// <summary>
+    /// Handles the information command by counting repeated activations within a short time window and displaying application information when the activation threshold is reached.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    [RelayCommand]
+    private async Task ShowInfoAsync()
+    {
+        var now = DateTime.Now;
+
+        if (_clickCount == 0 || now - _firstClick > TimeSpan.FromSeconds(5))
+        {
+            _clickCount = 0;
+            _firstClick = now;
+        }
+
+        _clickCount++;
+
+        if (_clickCount >= 5)
+        {
+            _clickCount = 0;
+            await ShowMessageAsync("Info", messageService.GetInfoMessage() ?? VersionNumber);
         }
     }
 }

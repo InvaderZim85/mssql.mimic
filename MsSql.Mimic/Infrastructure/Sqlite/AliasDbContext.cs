@@ -21,9 +21,9 @@ namespace MsSql.Mimic.Infrastructure.Sqlite;
 public sealed class AliasDbContext(DbContextOptions<AliasDbContext> options) : DbContext(options)
 {
     /// <summary>
-    /// Gets or sets the connection history.
+    /// Gets or sets the connections.
     /// </summary>
-    internal DbSet<ConnectionHistoryEntity> ConnectionHistory => Set<ConnectionHistoryEntity>();
+    internal DbSet<ConnectionEntity> Connections => Set<ConnectionEntity>();
     
     /// <summary>
     /// Gets or sets the table aliases.
@@ -38,7 +38,7 @@ public sealed class AliasDbContext(DbContextOptions<AliasDbContext> options) : D
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<ConnectionHistoryEntity>(entity =>
+        modelBuilder.Entity<ConnectionEntity>(entity =>
         {
             entity.ToTable("ConnectionHistory");
 
@@ -71,14 +71,6 @@ public sealed class AliasDbContext(DbContextOptions<AliasDbContext> options) : D
 
             entity.HasKey(key => key.Id);
 
-            SetPropertyRequiredLength(entity, property => property.Server, 256);
-
-            SetPropertyRequiredLength(entity, property => property.Database, 128);
-
-            SetPropertyRequiredLength(entity, property => property.TableName, 128);
-
-            SetPropertyRequiredLength(entity, property => property.ClassName, 128);
-
             entity.HasIndex(index => new
             {
                 index.Database,
@@ -96,12 +88,6 @@ public sealed class AliasDbContext(DbContextOptions<AliasDbContext> options) : D
             entity.ToTable("ColumnAliases");
 
             entity.HasKey(key => key.Id);
-
-            SetPropertyRequiredLength(entity, property => property.ColumnName, 128);
-
-            SetPropertyRequiredLength(entity, property => property.PropertyName, 256);
-
-            SetPropertyRequiredLength(entity, property => property.AccessorKind, 32);
 
             entity.HasIndex(index => new
             {

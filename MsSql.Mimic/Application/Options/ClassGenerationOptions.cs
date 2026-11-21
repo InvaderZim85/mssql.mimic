@@ -41,6 +41,11 @@ public sealed class ClassGenerationOptions
     /// Gets the value that indicates whether a summary should be created.
     /// </summary>
     public required bool GenerateSummary { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the source table has a primary key.
+    /// </summary>
+    public required bool TableHasPrimaryKey { get; init; }
     
     /// <summary>
     /// Gets the desired accessor kind.

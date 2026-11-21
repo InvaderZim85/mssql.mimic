@@ -11,8 +11,24 @@
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
                 <!--  Theme setting  -->
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/dark.cyan.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/dark.red.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <FontFamily x:Key="AppFont">
+                pack://application:,,,/Assets/#Orbitron
+            </FontFamily>
+
+            <!-- <FontFamily x:Key="MahApps.Fonts.Family.Control"> -->
+            <!--  pack://application:,,,/Assets/#Orbitron  -->
+            <!-- </FontFamily> -->
+            <!--    -->
+            <!-- <FontFamily x:Key="MahApps.Fonts.Family.Header"> -->
+            <!--  pack://application:,,,/Assets/#Orbitron  -->
+            <!-- </FontFamily> -->
+            <!--    -->
+            <!-- <FontFamily x:Key="MahApps.Fonts.Family.Monospace"> -->
+            <!--  pack://application:,,,/Assets/#Orbitron  -->
+            <!-- </FontFamily> -->
 
             <Style TargetType="{x:Type Label}">
                 <Setter Property="VerticalAlignment" Value="Center" />
@@ -20,8 +36,10 @@
             </Style>
 
             <Style x:Key="BorderStyle" TargetType="{x:Type Border}">
-                <Setter Property="Margin" Value="3" />
-                <Setter Property="BorderBrush" Value="LightGray" />
+                <Setter Property="Background" Value="#111111" />
+                <Setter Property="BorderBrush" Value="#202020" />
+                <Setter Property="Margin" Value="5" />
+                <Setter Property="CornerRadius" Value="4" />
                 <Setter Property="BorderThickness" Value="1" />
             </Style>
 
@@ -29,7 +47,11 @@
                 <Setter Property="CanUserAddRows" Value="False" />
                 <Setter Property="CanUserDeleteRows" Value="False" />
                 <Setter Property="AutoGenerateColumns" Value="False" />
+                <Setter Property="Background" Value="#111111" />
+                <Setter Property="Foreground" Value="#D0D0D0" />
                 <Setter Property="GridLinesVisibility" Value="Horizontal" />
+                <Setter Property="HorizontalGridLinesBrush" Value="#202020" />
+                <Setter Property="VerticalGridLinesBrush" Value="#151515" />
                 <Setter Property="AlternatingRowBackground" Value="{DynamicResource MahApps.Brushes.Accent4}" />
                 <Setter Property="Margin" Value="3" />
             </Style>
@@ -54,11 +76,12 @@
 
 
             <Style x:Key="Headline" TargetType="{x:Type Label}">
+                <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
                 <Setter Property="HorizontalAlignment" Value="Left" />
                 <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="FontWeight" Value="Bold" />
                 <Setter Property="FontStyle" Value="Italic" />
-                <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.AccentBase}" />
+                <Setter Property="Foreground" Value="{DynamicResource AccentColorBrush}" />
             </Style>
 
             <Style BasedOn="{StaticResource MahApps.Styles.Button}" TargetType="{x:Type Button}">
@@ -92,6 +115,21 @@
             <Style BasedOn="{StaticResource MahApps.Styles.ComboBox}" TargetType="{x:Type ComboBox}">
                 <Setter Property="Margin" Value="3" />
             </Style>
+
+            <Style TargetType="{x:Type StatusBarItem}">
+                <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+                <Setter Property="Foreground" Value="{DynamicResource AccentColorBrush}" />
+            </Style>
+
+            <Style TargetType="{x:Type TextBlock}">
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <SolidColorBrush x:Key="AccentColorBrush" Color="#D32F2F" />
+
+            <SolidColorBrush x:Key="AccentColorBrush2" Color="#FF3B30" />
+
+            <SolidColorBrush x:Key="AccentColorBrush3" Color="#B71C1C" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
