@@ -35,4 +35,19 @@ public sealed class PropertyDefinition
     /// Gets the maximum length defined for the property, or null when no maximum length is specified.
     /// </summary>
     public required int? MaxLength { get; init; }
+    
+    /// <summary>
+    /// Gets the numeric precision defined for the property, or null when precision is not applicable.
+    /// </summary>
+    public required int? Precision { get; init; }
+
+    /// <summary>
+    /// Gets the number of digits allowed to the right of the decimal point, or null when scale is not applicable.
+    /// </summary>
+    public required int? Scale { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the property maps to a SQL Server rowversion or timestamp column.
+    /// </summary>
+    public required bool IsRowVersion { get; init; }
 }

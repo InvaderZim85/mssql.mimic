@@ -49,16 +49,28 @@ public sealed partial class ColumnViewModel : ObservableObject
     public partial bool IsPrimaryKey { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum length defined for the column, if specified.
+    /// Gets or sets the maximum length defined for the column, or <see langword="null"/> when no maximum length is specified.
     /// </summary>
     [ObservableProperty]
     public partial int? MaxLength { get; set; }
 
     /// <summary>
-    /// Gets or sets the accessor pattern to use when generating the C# property.
+    /// Gets or sets the numeric precision of the column.
     /// </summary>
     [ObservableProperty]
-    public partial AccessorKind AccessorKind { get; set; }
+    public partial int? Precision { get; set; }
+
+    /// <summary>
+    /// Gets or sets the numeric scale of the column.
+    /// </summary>
+    [ObservableProperty]
+    public partial int? Scale { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the column is a row version column.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsRowVersion { get; set; }
 
     /// <summary>
     /// Converts this column view model into a property definition.
@@ -73,7 +85,10 @@ public sealed partial class ColumnViewModel : ObservableObject
             CSharpTypeName = CSharpTypeName,
             IsNullable = IsNullable,
             IsPrimaryKey = IsPrimaryKey,
-            MaxLength = MaxLength
+            MaxLength = MaxLength,
+            Precision = Precision,
+            Scale = Scale,
+            IsRowVersion = IsRowVersion
         };
     }
 
@@ -84,14 +99,19 @@ public sealed partial class ColumnViewModel : ObservableObject
     /// <returns>A column view model populated with values from the specified property definition.</returns>
     public static ColumnViewModel FromPropertyDefinition(PropertyDefinition property)
     {
-        return new ColumnViewModel
+        var columnViewModel = new ColumnViewModel
         {
             ColumnName = property.ColumnName,
             PropertyName = property.PropertyName,
             CSharpTypeName = property.CSharpTypeName,
             IsNullable = property.IsNullable,
             IsPrimaryKey = property.IsPrimaryKey,
-            MaxLength = property.MaxLength
+            MaxLength = property.MaxLength,
+            Precision = property.Precision,
+            Scale = property.Scale,
+            IsRowVersion = property.IsRowVersion
         };
+
+        return columnViewModel;
     }
 }

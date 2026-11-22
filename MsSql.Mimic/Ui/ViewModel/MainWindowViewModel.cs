@@ -37,6 +37,7 @@ namespace MsSql.Mimic.Ui.ViewModel;
 /// <param name="classGenerator">Generates C# class output from prepared metadata.</param>
 /// <param name="aliasService">Manages aliases used during metadata preparation or code generation.</param>
 /// <param name="generationStatisticsService">The services for collecting and managing statistics related to code generation.</param>
+/// <param name="nuGetPackageReader">The service for collecting NuGet package data like the name and version of each used package.</param>
 public sealed partial class MainWindowViewModel(
     ConnectionProfileService connectionProfileService,
     IConnectionDialogService connectionDialogService,
@@ -44,7 +45,8 @@ public sealed partial class MainWindowViewModel(
     ContextualMessageService messageService,
     CSharpClassGenerator classGenerator,
     AliasService aliasService,
-    GenerationStatisticsService generationStatisticsService) : BaseViewModel
+    GenerationStatisticsService generationStatisticsService,
+    NuGetPackageReader nuGetPackageReader) : BaseViewModel
 {
     /// <summary>
     /// Provides cancellation support for asynchronous operations in the main window view model.
@@ -119,7 +121,7 @@ public sealed partial class MainWindowViewModel(
     /// Gets or sets the namespace to use for the generated C# class.
     /// </summary>
     [ObservableProperty]
-    public partial string NamespaceName { get; set; } = "Generated";
+    public partial string NamespaceName { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the generated C# class name for the selected database table.
@@ -184,6 +186,17 @@ public sealed partial class MainWindowViewModel(
     public partial string VersionNumber { get; private set; } = "v1.0.0.0";
 
     /// <summary>
+    /// Gets the URL of the project's GitHub repository.
+    /// </summary>
+    public string GitHubUrl => "https://github.com/InvaderZim85/mssql.mimic";
+
+    /// <summary>
+    /// Gets the collection of NuGet package information available to the main window view model.
+    /// </summary>
+    [ObservableProperty]
+    public partial ObservableCollection<NuGetPackageInfo> NuGetPackages { get; private set; } = [];
+
+    /// <summary>
     /// Handles changes to the selected table and starts loading its details when a table is selected.
     /// </summary>
     /// <param name="value">The newly selected table entry, or null when the selection is cleared.</param>
@@ -222,6 +235,9 @@ public sealed partial class MainWindowViewModel(
             // Load and set the statistics
             await generationStatisticsService.LoadAsync();
             UpdateStatistics();
+            
+            // Load the nuget packages
+            NuGetPackages = nuGetPackageReader.GetNuGetPackages().ToObservableCollection();
             
             // Set the available accessors
             Accessors = AccessorOption.All.ToObservableCollection();
@@ -651,9 +667,7 @@ public sealed partial class MainWindowViewModel(
     [RelayCommand]
     private void OpenOnGithub()
     {
-        const string gitHubUrl = "https://github.com/InvaderZim85/mssql.mimic";
-
-        Helpers.OpenUrl(gitHubUrl);
+        Helpers.OpenUrl(GitHubUrl);
     }
 
     /// <summary>
@@ -676,7 +690,7 @@ public sealed partial class MainWindowViewModel(
         if (_clickCount >= 5)
         {
             _clickCount = 0;
-            await ShowMessageAsync("Info", messageService.GetInfoMessage() ?? VersionNumber);
+            await ShowMessageAsync("Info", messageService.GetInfoMessage());
         }
     }
 }

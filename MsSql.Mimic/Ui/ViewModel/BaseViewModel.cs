@@ -2,6 +2,8 @@
 
 using MahApps.Metro.Controls.Dialogs;
 
+using Serilog;
+
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
@@ -153,7 +155,7 @@ public abstract partial class BaseViewModel : ObservableObject
     protected async Task ShowErrorAsync(Exception ex, ErrorMessageType messageType,
         [CallerMemberName] string caller = "")
     {
-        LogError(ex, caller);
+        Log.Error(ex, "An error has occurred. Caller: {caller}", caller);
  
         var message = messageType switch
         {
@@ -164,17 +166,6 @@ public abstract partial class BaseViewModel : ObservableObject
         };
  
         await _dialogCoordinator.ShowMessageAsync(this, "Error", message);
-    }
- 
-    /// <summary>
-    /// Logs an error
-    /// </summary>
-    /// <param name="ex">The exception which was thrown</param>
-    /// <param name="caller">The name of the method, which calls this method. Value will be filled automatically</param>
-    protected static void LogError(Exception ex, [CallerMemberName] string caller = "")
-    {
-        // Here your logging function like the following (needs Serilog)
-        // Log.Error(ex, "An error has occurred. Caller: {caller}", caller);
     }
  
     /// <summary>

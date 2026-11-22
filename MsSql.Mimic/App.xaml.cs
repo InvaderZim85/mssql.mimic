@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using MsSql.Mimic.Application.Services;
 using MsSql.Mimic.Domain.Services;
+using MsSql.Mimic.Infrastructure.Loader;
 using MsSql.Mimic.Infrastructure.MsSql;
 using MsSql.Mimic.Infrastructure.Sqlite;
 using MsSql.Mimic.Ui.Services;
@@ -47,6 +48,13 @@ public partial class App
             // Prepare the DI
             var services = new ServiceCollection();
 
+            // Load the mappings (Note: It's possible to register the mapping loader also, but currently we use this approach).
+            var mappingLoader = new SqlTypeMappingLoader();
+            var mappings = await mappingLoader.LoadAsync();
+
+            // Add the mapping options
+            services.AddSingleton(new SqlTypeMappingOptions(mappings));
+            
             // Database
             services.AddDbContext<AliasDbContext>(options => options.UseSqlite("Data Source=aliases.db"));
             services.AddSingleton<PasswordProtector>();
@@ -54,6 +62,7 @@ public partial class App
             services.AddSingleton<SqlConnectionFactory>();
 
             // Services
+            services.AddSingleton<NuGetPackageReader>();
             services.AddSingleton<GenerationStatisticsService>();
             services.AddSingleton<ContextualMessageService>();
             services.AddSingleton<CSharpNameService>();

@@ -38,7 +38,11 @@ public sealed class PropertyDefinitionFactory(CSharpNameService nameService, Sql
                         CSharpTypeName = typeMapper.MapToCSharpType(column.SqlDataType, column.IsNullable),
                         IsNullable = column.IsNullable,
                         IsPrimaryKey = column.IsPrimaryKey,
-                        MaxLength = column.MaxLength
+                        MaxLength = column.MaxLength,
+                        Precision = column.Precision,
+                        Scale = column.Scale,
+                        IsRowVersion = column.SqlDataType.Equals("rowversion", StringComparison.OrdinalIgnoreCase) ||
+                                       column.SqlDataType.Equals("timestamp", StringComparison.OrdinalIgnoreCase)
                     };
                 })
         ];

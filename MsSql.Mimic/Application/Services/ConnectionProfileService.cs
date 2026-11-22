@@ -84,6 +84,9 @@ public sealed class ConnectionProfileService(AliasDbContext context, PasswordPro
         }
 
         await context.SaveChangesAsync(ct);
+        
+        // Set the last used data
+        profile.LastUsed = entity.LastUsedAtUtc.ToLocalTime();
     }
 
     /// <summary>

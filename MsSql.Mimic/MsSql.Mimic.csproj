@@ -30,6 +30,9 @@
     <None Update="Assets\VsCodeDark.xshd">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="mssql-csharp-type-mappings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <None Remove="Assets\SplashScreen.png" />

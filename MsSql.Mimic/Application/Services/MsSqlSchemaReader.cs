@@ -5,8 +5,23 @@ using MsSql.Mimic.Infrastructure.MsSql;
 
 namespace MsSql.Mimic.Application.Services;
 
+/// <summary>
+/// Reads schema metadata from a Microsoft SQL Server database for use by application services.
+/// </summary>
+/// <remarks>
+/// Provides operations for loading available table names and detailed table definitions from a database connection profile.
+/// </remarks>
+/// <param name="connectionFactory">
+/// Factory used to create SQL Server connections for the supplied connection profiles.
+/// </param>
 public sealed class MsSqlSchemaReader(SqlConnectionFactory connectionFactory)
 {
+    /// <summary>
+    /// Loads the available SQL Server table names and schemas for the specified connection profile.
+    /// </summary>
+    /// <param name="profile">The connection profile used to create the database connection.</param>
+    /// <param name="ct">A cancellation token that can be used to cancel the asynchronous operation.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the list of table entries ordered by table name.</returns>
     public async Task<IReadOnlyList<TableEntry>> LoadTableNamesAsync(
         ConnectionProfile profile,
         CancellationToken ct = default)
@@ -31,9 +46,16 @@ public sealed class MsSqlSchemaReader(SqlConnectionFactory connectionFactory)
         return [.. tables];
     }
 
+    /// <summary>
+    /// Loads the column metadata and primary key information for the specified SQL Server table.
+    /// </summary>
+    /// <param name="profile">The connection profile used to create the database connection.</param>
+    /// <param name="table">The table entry that identifies the schema and table name to load.</param>
+    /// <param name="ct">A cancellation token that can be used to cancel the asynchronous operation.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the table definition, including schema, name, and column definitions.</returns>
     public async Task<TableDefinition> LoadTableDefinitionAsync(
         ConnectionProfile profile,
-        TableEntry table, 
+        TableEntry table,
         CancellationToken ct = default)
     {
         const string query =
@@ -92,34 +114,5 @@ public sealed class MsSqlSchemaReader(SqlConnectionFactory connectionFactory)
             Name = table.Name,
             Columns = [.. columns]
         };
-    }
-    
-    public async Task<IReadOnlyList<string>> LoadDatabaseNamesAsync(
-        ConnectionProfile serverProfile,
-        CancellationToken ct = default)
-    {
-
-        var profile = serverProfile with { Database = "Master" };
-        const string query =
-            """
-            SELECT
-                name
-            FROM
-                sys.databases
-            WHERE
-                database_id > 4
-            ORDER BY
-                name;
-            """;
-
-        using var connection = connectionFactory.CreateConnection(profile);
-
-        var command = new CommandDefinition(
-            query,
-            cancellationToken: ct);
-
-        var databases = await connection.QueryAsync<string>(command);
-
-        return [.. databases];
     }
 }

@@ -21,8 +21,8 @@ public sealed record AccessorOption(
     /// </remarks>
     public static IReadOnlyList<AccessorOption> All { get; } =
     [
-        new(AccessorKind.GetSet, "'Get' and 'set'"),
-        new(AccessorKind.GetInit, "'Get' and 'init'")
+        new(AccessorKind.GetSet, "'Get' / 'Set'"),
+        new(AccessorKind.GetInit, "'Get' / 'Init'")
     ];
     
     /// <inheritdoc/>

@@ -14,6 +14,7 @@ public sealed class ColumnAliasEntity
     /// <summary>
     /// Gets or sets the unique identifier for this column alias.
     /// </summary>
+    [Key]
     public int Id { get; set; }
 
     /// <summary>

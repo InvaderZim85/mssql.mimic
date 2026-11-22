@@ -30,13 +30,17 @@ public sealed class CSharpClassGenerator(CSharpNameService nameService)
 
         if (options.UseEfCoreAttributes)
         {
+            builder.AppendLine("using Microsoft.EntityFrameworkCore;");
             builder.AppendLine("using System.ComponentModel.DataAnnotations;");
             builder.AppendLine("using System.ComponentModel.DataAnnotations.Schema;");
             builder.AppendLine();
         }
         
-        builder.AppendLine($"namespace {options.NamespaceName};");
-        builder.AppendLine();
+        if (!string.IsNullOrWhiteSpace(options.NamespaceName))
+        {
+            builder.AppendLine($"namespace {options.NamespaceName};");
+            builder.AppendLine();
+        }
 
         if (options.GenerateSummary)
         {
@@ -60,8 +64,16 @@ public sealed class CSharpClassGenerator(CSharpNameService nameService)
         builder.AppendLine($"internal sealed class {options.ClassName}");
         builder.AppendLine("{"); // Opening bracket
 
-        foreach (var property in options.Properties)
-            AppendProperty(builder, property, options.UseEfCoreAttributes, options.GenerateSummary, options.AccessorKind);
+        for (var i = 0; i < options.Properties.Count; i++)
+        {
+            AppendProperty(
+                builder: builder,
+                property: options.Properties[i],
+                useEfCoreAttributes: options.UseEfCoreAttributes,
+                generateSummary: options.GenerateSummary,
+                accessorKind: options.AccessorKind,
+                isFirstProperty: i == 0);
+        }
         
         builder.AppendLine("}"); // Closing bracket
 
@@ -76,14 +88,17 @@ public sealed class CSharpClassGenerator(CSharpNameService nameService)
     /// <param name="useEfCoreAttributes">A value indicating whether Entity Framework Core attributes should be emitted for the property.</param>
     /// <param name="generateSummary">A value indicating whether XML summary documentation should be emitted for the property.</param>
     /// <param name="accessorKind">The accessor style to use when generating the property declaration.</param>
+    /// <param name="isFirstProperty">Value that indicates whether the property is the first property in the list.</param>
     private void AppendProperty(
         StringBuilder builder,
         PropertyDefinition property,
         bool useEfCoreAttributes,
         bool generateSummary,
-        AccessorKind accessorKind)
+        AccessorKind accessorKind,
+        bool isFirstProperty)
     {
-        builder.AppendLine();
+        if (!isFirstProperty)
+            builder.AppendLine();
 
         if (generateSummary)
         {
@@ -99,19 +114,17 @@ public sealed class CSharpClassGenerator(CSharpNameService nameService)
             
             builder.AppendLine($"""{_spacer}[Column("{property.ColumnName}")]""");
 
-            if (property is { CSharpTypeName: "string" or "string?" })
-            {
-                var maxLength = property.MaxLength.HasValue
-                    ? property.MaxLength.Value <= 0
-                        ? "int.MaxValue"
-                        : property.MaxLength.Value.ToString()
-                    : "int.MaxValue";
+            // Add the max length attribute (if needed)
+            AppendMaxLengthAttribute(builder, property);
 
-                builder.AppendLine($"{_spacer}[MaxLength({maxLength})]");
-            }
-            
-            if (property is { IsNullable: false, CSharpTypeName: "string" or "byte[]" })
-                builder.AppendLine($"{_spacer}[Required]");
+            // Add the precision attribute (if needed)
+            AppendPrecisionAttribute(builder, property);
+           
+            // Add the timestamp attribute (if needed)
+            AppendRowVersionAttribute(builder, property);
+
+            // Add the required attribute (if needed) 
+            AppendRequiredAttribute(builder, property);
         }
 
         var accessorText = accessorKind switch
@@ -161,5 +174,63 @@ public sealed class CSharpClassGenerator(CSharpNameService nameService)
             select $"nameof({propertyName})"));
         
         builder.AppendLine(")]");
+    }
+
+    /// <summary>
+    /// Appends a MaxLength attribute for a string property, using the property's configured maximum length or int.MaxValue when no bounded length is defined.
+    /// </summary>
+    /// <param name="builder">The string builder to append the generated attribute line to.</param>
+    /// <param name="property">The property metadata used to determine whether a MaxLength attribute should be emitted and which length value to apply.</param>
+    private void AppendMaxLengthAttribute(StringBuilder builder, PropertyDefinition property)
+    {
+        if (property is not { CSharpTypeName: "string" or "string?" }) 
+            return;
+        
+        var maxLength = property.MaxLength.HasValue
+            ? property.MaxLength.Value <= 0
+                ? "int.MaxValue"
+                : property.MaxLength.Value.ToString()
+            : "int.MaxValue";
+
+        builder.AppendLine($"{_spacer}[MaxLength({maxLength})]");
+    }
+
+    /// <summary>
+    /// Appends a precision attribute for a decimal property when precision metadata is available.
+    /// </summary>
+    /// <param name="builder">The string builder receiving the generated property attributes.</param>
+    /// <param name="property">The property definition containing the C# type, precision, and scale metadata.</param>
+    private void AppendPrecisionAttribute(StringBuilder builder, PropertyDefinition property)
+    {
+        if (property is not { CSharpTypeName: "decimal", Precision: not null }) 
+            return;
+        
+        var precisionAttribute = property.Scale.HasValue
+            ? $"[Precision({property.Precision.Value}, {property.Scale.Value})]"
+            : $"[Precision({property.Precision.Value})]";
+
+        builder.AppendLine($"{_spacer}{precisionAttribute}");
+    }
+
+    /// <summary>
+    /// Appends a timestamp attribute to the generated property source when the property represents a row version column.
+    /// </summary>
+    /// <param name="builder">The string builder that receives the generated attribute line.</param>
+    /// <param name="property">The property metadata used to determine whether the timestamp attribute should be added.</param>
+    private void AppendRowVersionAttribute(StringBuilder builder, PropertyDefinition property)
+    {
+        if (property.IsRowVersion)
+            builder.AppendLine($"{_spacer}[Timestamp]");
+    }
+
+    /// <summary>
+    /// Appends a required attribute to the generated property when the property represents a non-nullable reference type that requires validation metadata.
+    /// </summary>
+    /// <param name="builder">The string builder receiving the generated attribute line.</param>
+    /// <param name="property">The property metadata used to determine whether the required attribute should be added.</param>
+    private void AppendRequiredAttribute(StringBuilder builder, PropertyDefinition property)
+    {
+        if (property is { IsNullable: false, CSharpTypeName: "string" or "byte[]" })
+            builder.AppendLine($"{_spacer}[Required]");
     }
 }

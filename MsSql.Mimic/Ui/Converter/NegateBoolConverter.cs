@@ -3,6 +3,14 @@ using System.Windows.Data;
 
 namespace MsSql.Mimic.Ui.Converter;
 
+/// <summary>
+/// Converts Boolean values to their logical negation for data binding scenarios.
+/// </summary>
+/// <remarks>
+/// Returns <see langword="true"/> when the input value is <see langword="false"/>,
+/// and <see langword="false"/> when the input value is <see langword="true"/>.
+/// Non-Boolean values are treated as invalid input and produce <see langword="false"/>.
+/// </remarks>
 internal sealed class NegateBoolConverter : IValueConverter
 {
     /// <inheritdoc/>

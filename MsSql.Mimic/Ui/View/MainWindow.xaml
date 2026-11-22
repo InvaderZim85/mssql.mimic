@@ -58,12 +58,17 @@
             <Button Command="{Binding OpenOnGithubCommand}" ToolTip="MsSql.Mimic on Github">
                 <iconPacks:PackIconBootstrapIcons Kind="Github" />
             </Button>
+
+            <ToggleButton x:Name="ToggleButtonInfo" ToolTip="Shows the program information">
+                <iconPacks:PackIconMaterial Kind="InformationOutline" />
+            </ToggleButton>
         </mah:WindowCommands>
     </mah:MetroWindow.RightWindowCommands>
 
     <!--  Stats flyout  -->
     <mah:MetroWindow.Flyouts>
         <mah:FlyoutsControl>
+            <!--  Statistics  -->
             <mah:Flyout
                 Width="300"
                 Header="Statistics"
@@ -146,6 +151,107 @@
                     </Grid>
                 </Border>
             </mah:Flyout>
+
+            <!--  About  -->
+            <mah:Flyout
+                Width="400"
+                Header="About MsSql.Mimic"
+                IsOpen="{Binding ElementName=ToggleButtonInfo, Path=IsChecked, Mode=TwoWay}"
+                Position="Right">
+                <Border Style="{StaticResource BorderStyle}">
+                    <Grid Margin="20" RowDefinitions="Auto,24,Auto,*">
+                        <StackPanel Grid.Row="0">
+                            <TextBlock
+                                FontFamily="{StaticResource AppFont}"
+                                FontSize="18"
+                                FontWeight="SemiBold"
+                                Text="About" />
+
+                            <Separator />
+
+                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*">
+                                <Label
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    Content="- Program:" />
+                                <TextBlock
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Text="MsSql.Mimic" />
+
+                                <Label
+                                    Grid.Row="1"
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    Content="- Version:" />
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Text="{Binding VersionNumber, Mode=OneWay}" />
+
+                                <Label
+                                    Grid.Row="2"
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    Content="- GitHub:" />
+                                <TextBlock Grid.Row="2" Grid.Column="1">
+                                    <Hyperlink Command="{Binding OpenOnGithubCommand}" NavigateUri="{Binding GitHubUrl, Mode=OneWay}">MsSql.Mimic on GitHub</Hyperlink>
+                                </TextBlock>
+
+                                <Label
+                                    Grid.Row="3"
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    Content="- License:" />
+                                <TextBlock Grid.Row="3" Grid.Column="1">
+                                    <Hyperlink Command="{Binding OpenOnGithubCommand}" NavigateUri="{Binding GitHubUrl}">MIT</Hyperlink>
+                                </TextBlock>
+
+                                <Label
+                                    Grid.Row="4"
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    Content="- Copyright:" />
+                                <TextBlock
+                                    Grid.Row="4"
+                                    Grid.Column="1"
+                                    Text="© 2026 Andreas Pouwels" />
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2">
+                            <Grid RowDefinitions="Auto,Auto,*">
+                                <TextBlock
+                                    FontFamily="{StaticResource AppFont}"
+                                    FontSize="18"
+                                    FontWeight="SemiBold"
+                                    Text="Third-Party Components" />
+
+                                <Separator Grid.Row="1" />
+
+                                <ItemsControl Grid.Row="2" ItemsSource="{Binding NuGetPackages}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock
+                                                    Grid.Column="0"
+                                                    Margin="10,3,0,0"
+                                                    Text="{Binding Name}" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Margin="12,0,0,0"
+                                                    Foreground="#D0D0D0"
+                                                    Text="{Binding Version}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </mah:Flyout>
         </mah:FlyoutsControl>
     </mah:MetroWindow.Flyouts>
 
@@ -172,7 +278,7 @@
                 Margin="0,0,20,0"
                 HorizontalAlignment="Right"
                 Content="{Binding VersionNumber}"
-                Foreground="#FF3B30" />
+                Foreground="{StaticResource AccentColorBrush2}" />
         </StatusBar>
 
         <Grid RowDefinitions="Auto,*">
@@ -182,7 +288,7 @@
                 Grid.RowSpan="2"
                 Margin="50"
                 Data="M2859 8820 c-270 -183 -1027 -698 -1294 -880 -66 -45 -295 -201 -510 -346 -214 -146 -437 -298 -495 -337 l-105 -72 -3 -1911 -2 -1911 152 -105 c84 -58 228 -157 320 -219 312 -213 473 -323 698 -478 124 -85 308 -212 410 -281 261 -178 444 -304 600 -413 261 -182 641 -437 651 -437 11 0 86 45 441 266 114 71 310 192 434 269 125 77 331 205 458 283 127 79 256 158 286 176 30 18 92 56 137 84 l82 52 68 -47 c71 -49 1103 -737 1472 -982 l214 -142 51 34 c28 19 137 95 242 168 599 418 1490 1037 1804 1254 113 78 313 217 445 310 132 93 263 184 290 204 28 19 60 44 73 55 l23 21 -2 1785 c-2 982 -6 1823 -9 1870 l-5 85 -380 257 c-209 141 -454 307 -545 369 -91 61 -304 205 -475 320 -170 114 -496 333 -724 486 -228 153 -419 279 -425 281 -7 1 -63 -33 -126 -76 -64 -43 -309 -208 -545 -367 -444 -298 -525 -352 -1103 -744 l-342 -232 -98 67 c-53 37 -124 86 -157 109 -283 196 -1686 1153 -1784 1217 -40 26 -77 48 -81 48 -4 0 -68 -41 -141 -90z m476 -1145 c50 -33 169 -115 265 -181 166 -114 423 -289 932 -635 l227 -154 1 -327 c0 -181 -3 -328 -7 -328 -5 0 -60 39 -124 88 -64 48 -165 122 -225 164 -60 42 -156 112 -214 154 -230 169 -584 427 -740 539 -91 65 -230 166 -310 225 -157 115 -301 213 -305 208 -1 -2 -5 -1054 -9 -2338 -4 -1284 -8 -2336 -10 -2337 -1 -1 -67 42 -147 96 -79 55 -261 179 -404 276 -143 97 -372 253 -510 346 -137 94 -305 207 -371 252 l-121 82 -8 1463 c-6 1230 -5 1466 6 1478 8 7 401 272 873 588 l860 575 125 -86 c69 -48 167 -114 216 -148z m4773 -379 l872 -581 -1 -720 c-1 -396 -5 -1051 -8 -1455 l-6 -735 -250 -170 c-137 -94 -322 -220 -410 -280 -88 -60 -190 -130 -227 -155 -188 -128 -443 -304 -547 -377 -64 -45 -119 -83 -123 -83 -5 0 -8 1053 -8 2340 l0 2341 -62 -44 c-66 -47 -206 -146 -404 -286 -66 -47 -150 -108 -189 -136 -38 -28 -180 -130 -315 -225 -135 -96 -381 -273 -548 -394 -167 -122 -324 -236 -350 -254 l-47 -32 -6 27 c-4 16 -7 159 -8 319 -1 264 1 294 17 312 14 18 459 323 1172 805 96 65 260 176 364 247 105 71 195 126 200 123 6 -3 404 -267 884 -587z m-3518 -2312 c206 -154 405 -301 442 -327 l66 -47 174 125 c95 68 225 163 288 210 63 47 201 148 305 225 105 76 284 209 400 294 115 85 213 152 217 149 9 -5 11 -3133 3 -3133 -3 0 -18 8 -33 19 -15 10 -119 78 -232 151 -113 73 -241 157 -285 185 -352 232 -812 528 -820 528 -5 0 -66 -36 -135 -80 -69 -44 -237 -151 -375 -238 -137 -87 -286 -181 -330 -210 -85 -56 -349 -222 -453 -286 -34 -22 -67 -39 -72 -39 -7 0 -10 544 -10 1555 l0 1555 238 -178 c130 -99 406 -305 612 -458z"
-                Fill="#D32F2F"
+                Fill="{StaticResource AccentColorBrush}"
                 Stretch="Uniform" />
 
             <!--  Connection  -->
@@ -237,7 +343,7 @@
             <!--  Content  -->
             <Grid
                 Grid.Row="1"
-                ColumnDefinitions="250,600,*"
+                ColumnDefinitions="250,800,*"
                 IsEnabled="{Binding Connected}"
                 Opacity=".97">
                 <!--  Tables  -->
@@ -312,18 +418,40 @@
                                     Binding="{Binding PropertyName, UpdateSourceTrigger=PropertyChanged}"
                                     Header="Property" />
                                 <DataGridTextColumn
-                                    Width="120"
+                                    Width="70"
                                     Binding="{Binding CSharpTypeName}"
                                     Header="Type"
                                     IsReadOnly="True" />
                                 <DataGridCheckBoxColumn
                                     Width="50"
                                     Binding="{Binding IsPrimaryKey}"
-                                    Header="Key" />
+                                    Header="Key"
+                                    IsReadOnly="True" />
                                 <DataGridCheckBoxColumn
-                                    Width="60"
+                                    Width="55"
                                     Binding="{Binding IsNullable}"
-                                    Header="Null" />
+                                    Header="Null"
+                                    IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="70"
+                                    Binding="{Binding MaxLength, FallbackValue='/'}"
+                                    Header="Length"
+                                    IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="85"
+                                    Binding="{Binding Precision, FallbackValue='/'}"
+                                    Header="Precision"
+                                    IsReadOnly="True" />
+                                <DataGridTextColumn
+                                    Width="60"
+                                    Binding="{Binding Scale, FallbackValue='/'}"
+                                    Header="Scale"
+                                    IsReadOnly="True" />
+                                <DataGridCheckBoxColumn
+                                    Width="100"
+                                    Binding="{Binding IsRowVersion}"
+                                    Header="RowVersion"
+                                    IsReadOnly="True" />
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -383,6 +511,7 @@
                             <TextBox
                                 Grid.Row="0"
                                 Grid.Column="1"
+                                mah:TextBoxHelper.Watermark="Your.Namespace..."
                                 Text="{Binding NamespaceName, UpdateSourceTrigger=PropertyChanged}" />
 
                             <Label

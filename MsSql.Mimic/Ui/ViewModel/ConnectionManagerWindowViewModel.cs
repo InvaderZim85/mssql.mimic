@@ -243,9 +243,17 @@ public sealed partial class ConnectionManagerWindowViewModel(
 
         try
         {
+            // Check if the connection already exists
+            if (ConnectionAlreadyExists(updatedConnection))
+            {
+                ShowInfoText("Connection already exists.", InfoTextType.Failure);
+                return;
+            }
+            
+            // Check if we should delete the old connection and create a new one
             if (_originalConnection is not null && _originalConnection.IsConnectionKeyChanged(updatedConnection))
             {
-                await connectionProfileService.DeleteConnectionAsync(updatedConnection);
+                await connectionProfileService.DeleteConnectionAsync(_originalConnection);
                 Connections.Remove(_originalConnection);
             }
 
@@ -315,6 +323,24 @@ public sealed partial class ConnectionManagerWindowViewModel(
         {
             await ShowErrorAsync(ex, ErrorMessageType.Delete);
         }
+    }
+
+    /// <summary>
+    /// Determines whether a matching connection profile already exists.
+    /// </summary>
+    /// <remarks>
+    /// Compares the supplied connection against existing connections while excluding the original connection being edited. Server, database, and username comparisons are case-insensitive.
+    /// </remarks>
+    /// <param name="updatedConnection">The connection profile to check for duplication.</param>
+    /// <returns>True if another connection with the same server, database, authentication mode, and username exists; otherwise, false.</returns>
+    private bool ConnectionAlreadyExists(ConnectionProfile updatedConnection)
+    {
+        return Connections.Any(existing =>
+            !ReferenceEquals(existing, _originalConnection) &&
+            existing.Server.Equals(updatedConnection.Server, StringComparison.OrdinalIgnoreCase) &&
+            existing.Database.Equals(updatedConnection.Database, StringComparison.OrdinalIgnoreCase) &&
+            existing.UseIntegratedSecurity == updatedConnection.UseIntegratedSecurity &&
+            string.Equals(existing.UserName, updatedConnection.UserName, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

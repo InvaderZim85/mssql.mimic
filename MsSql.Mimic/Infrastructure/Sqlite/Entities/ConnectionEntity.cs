@@ -10,6 +10,7 @@ internal sealed class ConnectionEntity
     /// <summary>
     /// Gets or sets the primary key that uniquely identifies the connection history record.
     /// </summary>
+    [Key]
     public int Id { get; set; }
 
     /// <summary>

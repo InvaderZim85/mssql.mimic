@@ -40,20 +40,10 @@ public sealed class AliasDbContext(DbContextOptions<AliasDbContext> options) : D
     {
         modelBuilder.Entity<ConnectionEntity>(entity =>
         {
-            entity.ToTable("ConnectionHistory");
+            entity.ToTable("Connections");
 
             entity.HasKey(key => key.Id);
 
-            SetPropertyRequiredLength(entity, property => property.Server, 256);
-
-            SetPropertyRequiredLength(entity, property => property.Database, 128);
-
-            entity.Property(property => property.UserName).HasMaxLength(256);
-
-            entity.Property(property => property.ProtectedPassword).HasMaxLength(4096);
-
-            SetPropertyRequiredLength(entity, property => property.ApplicationIntent, 32);
-            
             entity.Property(property => property.LastUsedAtUtc).IsRequired();
 
             entity.HasIndex(index => new
@@ -62,7 +52,7 @@ public sealed class AliasDbContext(DbContextOptions<AliasDbContext> options) : D
                 index.Database,
                 index.UseIntegratedSecurity,
                 index.UserName
-            });
+            }).IsUnique();
         });
         
         modelBuilder.Entity<TableAliasEntity>(entity =>
@@ -95,14 +85,5 @@ public sealed class AliasDbContext(DbContextOptions<AliasDbContext> options) : D
                 index.ColumnName
             }).IsUnique();
         });
-
-        return;
-
-        void SetPropertyRequiredLength<TEntity, TProperty>(EntityTypeBuilder<TEntity> entity, Expression<Func<TEntity, TProperty>> propertyExpression, int maxLength) where TEntity : class
-        {
-            entity.Property(propertyExpression)
-                .IsRequired()
-                .HasMaxLength(maxLength);
-        }
     }
 }

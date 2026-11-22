@@ -66,12 +66,12 @@ public sealed record ConnectionProfile
     public bool Encrypt { get; init; } = true;
 
     /// <summary>
-    /// Gets the date and time when the connection profile was last used.
+    /// Gets or sets the date and time when the connection profile was last used.
     /// </summary>
     /// <value>
     /// The timestamp representing the most recent use of the connection profile.
     /// </value>
-    public DateTime LastUsed { get; init; }
+    public DateTime LastUsed { get; set; }
 
     /// <summary>
     /// Gets the intended SQL Server connection workload, indicating whether the connection is for read-only or read-write operations.
