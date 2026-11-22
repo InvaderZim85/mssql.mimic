@@ -1,0 +1,46 @@
+{
+  "bigint": "long",
+  "int": "int",
+  "smallint": "short",
+  "tinyint": "byte",
+  "bit": "bool",
+
+  "decimal": "decimal",
+  "numeric": "decimal",
+  "money": "decimal",
+  "smallmoney": "decimal",
+
+  "float": "double",
+  "real": "float",
+
+  "date": "DateOnly",
+  "datetime": "DateTime",
+  "datetime2": "DateTime",
+  "smalldatetime": "DateTime",
+  "datetimeoffset": "DateTimeOffset",
+  "time": "TimeOnly",
+
+  "char": "string",
+  "varchar": "string",
+  "text": "string",
+  "nchar": "string",
+  "nvarchar": "string",
+  "ntext": "string",
+
+  "uniqueidentifier": "Guid",
+
+  "binary": "byte[]",
+  "varbinary": "byte[]",
+  "image": "byte[]",
+
+  "xml": "string",
+  "json": "string",
+
+  "sql_variant": "object",
+  "hierarchyid": "string",
+  "geometry": "object",
+  "geography": "object",
+
+  "rowversion": "byte[]",
+  "timestamp": "byte[]"
+}
